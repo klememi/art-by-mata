@@ -1,0 +1,13 @@
+---
+import PaintingPage from '../../components/PaintingPage.astro';
+import { getPaintings } from '../../lib/data';
+
+export async function getStaticPaths() {
+  const paintings = await getPaintings();
+  return paintings.map((p) => ({ params: { slug: p.id } }));
+}
+
+const { slug } = Astro.params;
+---
+
+<PaintingPage lang="sk" slug={slug!} />

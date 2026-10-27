@@ -1,0 +1,311 @@
+---
+import Base from '../layouts/Base.astro';
+import PaintingImage from './PaintingImage.astro';
+import { href, pick, ui, type Lang } from '../i18n';
+import { getCategories, getPaintings, getSettings, paragraphs } from '../lib/data';
+
+interface Props {
+  lang: Lang;
+  slug: string;
+}
+const { lang, slug } = Astro.props;
+const t = ui[lang];
+const other: Lang = lang === 'en' ? 'sk' : 'en';
+const settings = await getSettings();
+const categories = await getCategories();
+const paintings = await getPaintings();
+const index = paintings.findIndex((p) => p.id === slug);
+const painting = paintings[index];
+const d = painting.data;
+
+const title = pick(d, 'title', lang);
+const medium = pick(d, 'medium', lang);
+const description = pick(d, 'description', lang);
+const category = categories.find((c) => c.id === d.category);
+const categoryName = category ? pick(category.data, 'name', lang) : '';
+const size = d.width_cm && d.height_cm ? `${d.width_cm} × ${d.height_cm} cm` : '';
+const statusText = !d.status
+  ? ''
+  : d.status === 'available'
+    ? `${t.statusLabels.available} · ${d.price || t.priceOnRequest}`
+    : t.statusLabels[d.status];
+
+const prev = paintings[(index - 1 + paintings.length) % paintings.length];
+const next = paintings[(index + 1) % paintings.length];
+const more = paintings.filter((p) => p.data.category === d.category && p.id !== slug).slice(0, 4);
+const enquireUrl = `${href(lang, 'contact')}?painting=${encodeURIComponent(title)}`;
+const instagram = d.instagram_url || settings.instagram_url;
+const homeWithCategory = `${href(lang, 'home')}?c=${d.category}`;
+---
+
+<Base
+  lang={lang}
+  title={title}
+  description={description.slice(0, 160)}
+  current="work"
+  alternate={href(other, 'work', slug)}
+  ogImage={d.image.src}
+>
+  <div class="wrap back">
+    <a href={href(lang, 'home')}>
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5" /><path d="M11 6l-6 6 6 6" /></svg>
+      {t.allWork}
+    </a>
+  </div>
+
+  <article class="wrap detail">
+    <figure class="stage">
+      <PaintingImage
+        src={d.image}
+        alt={[title, medium].filter(Boolean).join(', ')}
+        sizes="(max-width: 720px) calc(100vw - 80px), (max-width: 1360px) 55vw, 740px"
+        widths={[480, 720, 960, 1280, 1600, 2000]}
+        eager
+      />
+    </figure>
+
+    <section class="info">
+      <div class="heading">
+        {categoryName && <span class="muted small">{categoryName} · {index + 1} / {paintings.length}</span>}
+        <h1>{title}</h1>
+      </div>
+
+      {(medium || size || d.year || statusText) && (
+        <dl>
+          {medium && (<><dt>{t.medium}</dt><dd>{medium}</dd></>)}
+          {size && (<><dt>{t.size}</dt><dd>{size}</dd></>)}
+          {d.year && (<><dt>{t.year}</dt><dd>{d.year}</dd></>)}
+          {statusText && (
+            <>
+              <dt>{t.status}</dt>
+              <dd class="status"><span class={`status-dot status-${d.status}`} aria-hidden="true"></span>{statusText}</dd>
+            </>
+          )}
+        </dl>
+      )}
+
+      {paragraphs(description).map((para) => <p class="desc">{para}</p>)}
+
+      <div class="actions">
+        {d.status !== 'sold' && <a class="btn btn-primary" href={enquireUrl}>{t.enquire}</a>}
+        {instagram && (
+          <a class="btn btn-secondary" href={instagram} rel="noopener" target="_blank">
+            {t.seeOnInstagram}
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7" /><path d="M8 7h9v9" /></svg>
+          </a>
+        )}
+      </div>
+
+      {paintings.length > 1 && (
+        <nav class="pager" aria-label={t.browse}>
+          <a href={href(lang, 'work', prev.id)} rel="prev">
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6" /></svg>
+            {t.previous}
+          </a>
+          <a href={href(lang, 'work', next.id)} rel="next">
+            {t.next}
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+          </a>
+        </nav>
+      )}
+    </section>
+  </article>
+
+  {
+    more.length > 0 && (
+      <section class="more">
+        <div class="wrap">
+          <div class="more-head">
+            <h2 class="section-title">{t.moreIn}: {categoryName.toLowerCase()}</h2>
+            <a href={homeWithCategory}>{t.viewAll}</a>
+          </div>
+          <ul>
+            {more.map((m) => (
+              <li>
+                <a href={href(lang, 'work', m.id)}>
+                  <PaintingImage src={m.data.image} alt={pick(m.data, 'title', lang)} sizes="(max-width: 640px) 45vw, 300px" widths={[240, 360, 480, 640]} class="art thumb" />
+                  <span>{pick(m.data, 'title', lang)}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    )
+  }
+</Base>
+
+<style>
+  .back {
+    padding-top: 8px;
+  }
+  .back a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    font-size: 14px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .back a:hover {
+    color: var(--ink);
+  }
+  .heading {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 24px;
+  }
+  .heading + dl {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .detail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 40px 64px;
+    padding-top: 16px;
+    padding-bottom: 80px;
+  }
+  .stage {
+    margin: 0;
+    flex: 999 1 560px;
+    min-width: 0;
+    background: var(--mat);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(16px, 4vw, 56px);
+  }
+  .stage :global(img) {
+    width: auto;
+    max-width: 100%;
+    max-height: min(78vh, 900px);
+    height: auto;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 12px 32px rgba(0, 0, 0, 0.1);
+  }
+  .info {
+    flex: 1 1 320px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding-top: 8px;
+  }
+  .heading {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .small {
+    font-size: 13px;
+  }
+  h1 {
+    font-size: clamp(32px, 4vw, 44px);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+  }
+  dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 12px 24px;
+    font-size: 15px;
+    border-top: 1px solid var(--line);
+    padding-top: 20px;
+  }
+  dt {
+    color: var(--muted);
+  }
+  dd {
+    margin: 0;
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .desc {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.65;
+    color: #3a3a3a;
+  }
+  .desc + .desc {
+    margin-top: -16px;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .pager {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+    font-size: 14px;
+  }
+  .pager a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    text-decoration: none;
+  }
+  .pager a[rel='prev'] {
+    color: var(--muted);
+  }
+  .more {
+    border-top: 1px solid var(--line);
+  }
+  .more .wrap {
+    padding-top: 56px;
+    padding-bottom: 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .more-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .more-head a {
+    font-size: 14px;
+    padding: 12px 0;
+  }
+  .more ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 24px;
+  }
+  .more li a {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .more :global(.thumb) {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+  }
+  @media (max-width: 720px) {
+    .stage {
+      margin-inline: calc(var(--gutter) * -1);
+      padding: 24px 16px;
+    }
+    .detail {
+      padding-bottom: 56px;
+    }
+  }
+</style>

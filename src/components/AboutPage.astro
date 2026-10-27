@@ -1,0 +1,187 @@
+---
+import Base from '../layouts/Base.astro';
+import PaintingImage from './PaintingImage.astro';
+import { href, asset, pick, ui, type Lang } from '../i18n';
+import { getAbout, paragraphs } from '../lib/data';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = ui[lang];
+const other: Lang = lang === 'en' ? 'sk' : 'en';
+const about = await getAbout();
+const lead = pick(about, 'lead', lang);
+const bio = paragraphs(pick(about, 'bio', lang));
+const statement = paragraphs(pick(about, 'statement', lang));
+const caption = pick(about, 'portrait_caption', lang);
+const cvUrl = about.cv_file ? (/^https?:/.test(about.cv_file) ? about.cv_file : asset(about.cv_file)) : '';
+---
+
+<Base lang={lang} title={t.about} description={lead} current="about" alternate={href(other, 'about')} ogImage={about.portrait?.src}>
+  <div class="wrap about">
+    <section class="hero">
+      {
+        about.portrait && (
+          <figure class="portrait">
+            <PaintingImage src={about.portrait} alt={caption || t.about} sizes="(max-width: 720px) calc(100vw - 48px), 520px" widths={[360, 520, 720, 1040]} eager class="art" />
+            {caption && <figcaption class="muted">{caption}</figcaption>}
+          </figure>
+        )
+      }
+      <div class="text">
+        <h1 class="page-title">{t.about}</h1>
+        {lead && <p class="lead">{lead}</p>}
+        {bio.map((p) => <p class="body">{p}</p>)}
+        {statement.map((p) => <p class="body">{p}</p>)}
+        <div class="actions">
+          <a class="btn btn-primary" href={href(lang, 'contact')}>{t.commissions}</a>
+          {
+            cvUrl && (
+              <a class="btn btn-secondary" href={cvUrl} download>
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11" /><path d="M7 10l5 5 5-5" /><path d="M5 20h14" /></svg>
+                {t.downloadCv}
+              </a>
+            )
+          }
+        </div>
+      </div>
+    </section>
+
+    {
+      about.exhibitions.length > 0 && (
+        <section class="cv">
+          <h2 class="section-title">{t.exhibitions}</h2>
+          <ul>
+            {about.exhibitions.map((e) => (
+              <li>
+                <span class="muted year">{e.year}</span>
+                <span class="what">{pick(e, 'title', lang)}</span>
+                <span class="muted where">{e.venue}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    {
+      about.education.length > 0 && (
+        <section class="cv">
+          <h2 class="section-title">{t.education}</h2>
+          <ul>
+            {about.education.map((e) => (
+              <li>
+                <span class="muted year">{e.year}</span>
+                <span class="what">{pick(e, 'title', lang)}</span>
+                <span class="muted where">{e.institution}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+  </div>
+</Base>
+
+<style>
+  .about {
+    padding-top: 56px;
+    padding-bottom: 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 96px;
+  }
+  .hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 40px 80px;
+  }
+  .portrait {
+    margin: 0;
+    flex: 1 1 320px;
+    max-width: 520px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .portrait :global(img) {
+    width: 100%;
+    height: auto;
+  }
+  .portrait figcaption {
+    font-size: 13px;
+  }
+  .text {
+    flex: 999 1 480px;
+    min-width: 0;
+    max-width: 680px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .page-title {
+    font-size: clamp(40px, 6vw, 72px);
+  }
+  .lead {
+    margin: 0;
+    font-family: var(--display);
+    font-size: clamp(20px, 2.2vw, 26px);
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+  }
+  .body {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.7;
+    color: #3a3a3a;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 8px;
+  }
+  .cv {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px 80px;
+    border-top: 1px solid var(--line);
+    padding-top: 40px;
+  }
+  .cv h2 {
+    flex: 1 1 240px;
+  }
+  .cv ul {
+    flex: 999 1 560px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .cv li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 32px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 16px;
+  }
+  .year {
+    flex: 0 0 72px;
+  }
+  .what {
+    flex: 1 1 240px;
+    font-weight: 500;
+  }
+  .where {
+    flex: 1 1 200px;
+  }
+  @media (max-width: 720px) {
+    .about {
+      padding-top: 32px;
+      gap: 64px;
+    }
+  }
+</style>

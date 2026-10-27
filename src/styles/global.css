@@ -1,0 +1,169 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/inter-tight';
+
+:root {
+  --ink: #161616;
+  --muted: #5e5e5e;
+  --line: #e4e2de;
+  --line-strong: #d6d3ce;
+  --field: #cfcbc4;
+  --paper: #ffffff;
+  --mat: #f4f3f0;
+  --available: #2e7d4f;
+  --reserved: #b7791f;
+  --sold: #8a8a8a;
+  --display: 'Inter Tight Variable', 'Inter Tight', system-ui, sans-serif;
+  --body: 'Inter Variable', Inter, system-ui, sans-serif;
+  --wrap: 1360px;
+  --gutter: 24px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: var(--ink);
+}
+a:hover {
+  color: var(--muted);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.wrap {
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding-inline: var(--gutter);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -60px;
+  z-index: 50;
+  background: var(--ink);
+  color: #fff;
+  padding: 10px 16px;
+}
+.skip-link:focus {
+  top: 12px;
+  color: #fff;
+}
+
+h1,
+h2 {
+  font-family: var(--display);
+  font-weight: 500;
+  margin: 0;
+}
+
+.page-title {
+  font-size: clamp(44px, 7vw, 88px);
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.section-title {
+  font-size: 24px;
+  letter-spacing: -0.015em;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 24px;
+  border-radius: 2px;
+  font: 500 15px var(--body);
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn-primary {
+  background: var(--ink);
+  color: #fff;
+  border: 0;
+}
+.btn-primary:hover {
+  background: #333;
+  color: #fff;
+}
+.btn-secondary {
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+}
+.btn-secondary:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+.status-available {
+  background: var(--available);
+}
+.status-reserved {
+  background: var(--reserved);
+}
+.status-sold {
+  background: transparent;
+  border: 1.5px solid var(--sold);
+}
+.status-not_for_sale {
+  display: none;
+}
+
+/* Painting image placeholder frame while loading */
+.art {
+  background: var(--mat);
+}

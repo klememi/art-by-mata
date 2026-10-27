@@ -1,0 +1,338 @@
+---
+import '../styles/global.css';
+import { href, asset, ui, type Lang } from '../i18n';
+import { getSettings } from '../lib/data';
+
+interface Props {
+  lang: Lang;
+  title?: string;
+  description?: string;
+  current: 'home' | 'work' | 'about' | 'contact' | 'none';
+  /** URL of this same page in the other language. */
+  alternate: string;
+  ogImage?: string;
+}
+
+const { lang, title, description, current, alternate, ogImage } = Astro.props;
+const settings = await getSettings();
+const t = ui[lang];
+const other: Lang = lang === 'en' ? 'sk' : 'en';
+const fullTitle = title ? `${title} — ${settings.artist_name}` : `${settings.artist_name} — ${t.paintings}`;
+const desc = description || (lang === 'sk' ? settings.seo_description_sk : settings.seo_description_en) || settings.seo_description_en;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const altUrl = new URL(alternate, Astro.site);
+const ig = settings.instagram_url;
+
+const nav = [
+  { key: 'work', label: t.work, url: href(lang, 'home') },
+  { key: 'about', label: t.about, url: href(lang, 'about') },
+  { key: 'contact', label: t.contact, url: href(lang, 'contact') },
+] as const;
+const isCurrent = (key: string) => key === current || (key === 'work' && current === 'home');
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={desc} />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang={lang} href={canonical} />
+    <link rel="alternate" hreflang={other} href={altUrl} />
+    <link rel="alternate" hreflang="x-default" href={lang === 'sk' ? canonical : altUrl} />
+    <link rel="icon" href={asset('favicon.svg')} type="image/svg+xml" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={desc} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={lang === 'sk' ? 'sk_SK' : 'en_GB'} />
+    {ogImage && <meta property="og:image" content={new URL(ogImage, Astro.site)} />}
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">{lang === 'sk' ? 'Preskočiť na obsah' : 'Skip to content'}</a>
+
+    <header class="site-header wrap">
+      <a class="brand" href={href(lang, 'home')}>{settings.artist_name}</a>
+
+      <nav class="nav-desktop" aria-label={t.mainNav}>
+        {nav.map((n) => (
+          <a href={n.url} aria-current={isCurrent(n.key) ? 'page' : undefined}>{n.label}</a>
+        ))}
+        {ig && (
+          <a href={ig} rel="me noopener" target="_blank">
+            {t.instagram}
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7" /><path d="M8 7h9v9" /></svg>
+          </a>
+        )}
+        <div class="lang" role="group" aria-label={t.language}>
+          {lang === 'sk' ? (
+            <>
+              <span aria-current="true">SK</span><span aria-hidden="true" class="sep">/</span><a href={alternate} hreflang="en" lang="en" aria-label="English">EN</a>
+            </>
+          ) : (
+            <>
+              <a href={alternate} hreflang="sk" lang="sk" aria-label="Slovenčina">SK</a><span aria-hidden="true" class="sep">/</span><span aria-current="true">EN</span>
+            </>
+          )}
+        </div>
+      </nav>
+
+      <div class="nav-mobile-bar">
+        <a class="lang-mini" href={alternate} hreflang={other} lang={other} aria-label={other === 'sk' ? 'Slovenčina' : 'English'}>{other.toUpperCase()}</a>
+        <button class="menu-btn" type="button" aria-label={t.menuOpen} aria-controls="mobile-menu" aria-expanded="false" data-menu-open>
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 8h16" /><path d="M4 16h16" /></svg>
+        </button>
+      </div>
+    </header>
+
+    <dialog id="mobile-menu" class="mobile-menu" aria-label={t.mainNav}>
+      <div class="mobile-menu-top">
+        <span class="brand">{settings.artist_name}</span>
+        <button class="menu-btn" type="button" aria-label={t.menuClose} data-menu-close>
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12" /><path d="M18 6L6 18" /></svg>
+        </button>
+      </div>
+      <nav class="mobile-menu-nav" aria-label={t.mainNav}>
+        {nav.map((n) => (
+          <a href={n.url} aria-current={isCurrent(n.key) ? 'page' : undefined}>{n.label}</a>
+        ))}
+      </nav>
+      <div class="mobile-menu-bottom">
+        {ig && <a class="btn btn-secondary" href={ig} rel="me noopener" target="_blank">{t.follow} ↗</a>}
+        {settings.email && <a class="muted" href={`mailto:${settings.email}`}>{settings.email}</a>}
+        <div class="lang lang-full" role="group" aria-label={t.language}>
+          {lang === 'sk' ? (
+            <>
+              <span aria-current="true">Slovenčina</span><span aria-hidden="true" class="sep">/</span><a href={alternate} hreflang="en" lang="en">English</a>
+            </>
+          ) : (
+            <>
+              <a href={alternate} hreflang="sk" lang="sk">Slovenčina</a><span aria-hidden="true" class="sep">/</span><span aria-current="true">English</span>
+            </>
+          )}
+        </div>
+      </div>
+    </dialog>
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap footer-inner">
+        <span>© {new Date().getFullYear()} {settings.artist_name}</span>
+        <div class="footer-links">
+          <a href={href(lang, 'contact')}>{t.contact}</a>
+          {ig && <a href={ig} rel="me noopener" target="_blank">{t.instagram}</a>}
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      const dialog = document.getElementById('mobile-menu') as HTMLDialogElement | null;
+      const openBtn = document.querySelector<HTMLButtonElement>('[data-menu-open]');
+      const closeBtn = document.querySelector<HTMLButtonElement>('[data-menu-close]');
+      openBtn?.addEventListener('click', () => {
+        dialog?.showModal();
+        openBtn.setAttribute('aria-expanded', 'true');
+      });
+      closeBtn?.addEventListener('click', () => dialog?.close());
+      dialog?.addEventListener('close', () => openBtn?.setAttribute('aria-expanded', 'false'));
+    </script>
+  </body>
+</html>
+
+<style>
+  .site-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 32px;
+    padding-block: 24px;
+  }
+  .brand {
+    font-family: var(--display);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    color: var(--ink);
+    padding: 10px 0;
+  }
+  .nav-desktop {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 28px;
+    font-size: 15px;
+  }
+  .nav-desktop > a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 0;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .nav-desktop > a:hover,
+  .nav-desktop > a[aria-current='page'] {
+    color: var(--ink);
+  }
+  .nav-desktop > a[aria-current='page'] {
+    text-decoration: underline;
+    text-underline-offset: 6px;
+  }
+  .lang {
+    display: flex;
+    align-items: center;
+    padding-left: 14px;
+    border-left: 1px solid var(--line);
+    font-size: 13px;
+    letter-spacing: 0.06em;
+  }
+  .lang > a,
+  .lang > span[aria-current] {
+    padding: 12px 5px;
+    text-decoration: none;
+    color: var(--muted);
+  }
+  .lang > span[aria-current] {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .lang .sep {
+    color: #c9c6c0;
+  }
+  .nav-mobile-bar {
+    display: none;
+    align-items: center;
+    margin-right: -12px;
+  }
+  .lang-mini {
+    min-width: 44px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .menu-btn {
+    width: 48px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 0;
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .mobile-menu {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    background: #fff;
+    color: var(--ink);
+  }
+  .mobile-menu[open] {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 8px 32px 20px;
+  }
+  .mobile-menu-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .mobile-menu-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 48px;
+    font-family: var(--display);
+    font-size: 40px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+  }
+  .mobile-menu-nav a {
+    text-decoration: none;
+    color: var(--muted);
+    padding: 6px 0;
+  }
+  .mobile-menu-nav a[aria-current='page'] {
+    color: var(--ink);
+  }
+  .mobile-menu-bottom {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding-right: 12px;
+    text-align: center;
+  }
+  .mobile-menu-bottom > a.muted {
+    padding: 12px 0;
+  }
+  .lang-full {
+    justify-content: center;
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .site-footer {
+    border-top: 1px solid var(--line);
+  }
+  .footer-inner {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px 32px;
+    padding-block: 32px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 24px;
+  }
+  .footer-links a {
+    padding: 12px 0;
+  }
+
+  @media (max-width: 720px) {
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #fff;
+      border-bottom: 1px solid #efede9;
+      padding-block: 8px;
+      flex-wrap: nowrap;
+    }
+    .brand {
+      font-size: 18px;
+    }
+    .nav-desktop {
+      display: none;
+    }
+    .nav-mobile-bar {
+      display: flex;
+    }
+  }
+</style>

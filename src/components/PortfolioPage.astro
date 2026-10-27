@@ -1,0 +1,222 @@
+---
+import Base from '../layouts/Base.astro';
+import PaintingImage from './PaintingImage.astro';
+import { href, pick, ui, type Lang } from '../i18n';
+import { getCategories, getPaintings, getSettings } from '../lib/data';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = ui[lang];
+const settings = await getSettings();
+const categories = await getCategories();
+const paintings = await getPaintings();
+const other: Lang = lang === 'en' ? 'sk' : 'en';
+
+const catName = new Map(categories.map((c) => [c.id, pick(c.data, 'name', lang)]));
+const counts = new Map(categories.map((c) => [c.id, paintings.filter((p) => p.data.category === c.id).length]));
+const usedCategories = categories.filter((c) => (counts.get(c.id) ?? 0) > 0);
+const intro = pick(settings, 'intro', lang);
+---
+
+<Base lang={lang} current="home" alternate={href(other, 'home')} ogImage={paintings[0]?.data.image.src}>
+  <section class="wrap intro">
+    <h1 class="page-title">{t.paintings}</h1>
+    {intro && <p class="muted">{intro}</p>}
+  </section>
+
+  {
+    usedCategories.length > 1 && (
+      <div class="wrap">
+        <div class="filters" role="group" aria-label={t.filterLabel} data-filters>
+          <button type="button" aria-pressed="true" data-filter="all">
+            {t.all}
+            <span class="count">{paintings.length}</span>
+          </button>
+          {usedCategories.map((c) => (
+            <button type="button" aria-pressed="false" data-filter={c.id}>
+              {catName.get(c.id)}
+              <span class="count">{counts.get(c.id)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  <div class="wrap">
+    <ul class="grid" data-grid>
+      {
+        paintings.map((p, i) => {
+          const title = pick(p.data, 'title', lang);
+          const medium = pick(p.data, 'medium', lang);
+          const size = p.data.width_cm && p.data.height_cm ? `${p.data.width_cm} × ${p.data.height_cm} cm` : '';
+          const meta = [medium, size, p.data.year].filter(Boolean).join(' · ');
+          return (
+            <li data-category={p.data.category}>
+              <a href={href(lang, 'work', p.id)} class="card">
+                <PaintingImage
+                  src={p.data.image}
+                  alt={[title, medium].filter(Boolean).join(', ')}
+                  sizes="(max-width: 640px) calc(100vw - 48px), (max-width: 1000px) calc(50vw - 40px), 430px"
+                  eager={i < 3}
+                  class="art"
+                />
+                <div class="card-head">
+                  <span class="card-title">{title}</span>
+                  <span class="card-cat">{catName.get(p.data.category)}</span>
+                </div>
+                {meta && <div class="card-meta">{meta}</div>}
+              </a>
+            </li>
+          );
+        })
+      }
+    </ul>
+  </div>
+</Base>
+
+<script>
+  const group = document.querySelector<HTMLElement>('[data-filters]');
+  const items = document.querySelectorAll<HTMLElement>('[data-grid] > li');
+  if (group) {
+    const buttons = group.querySelectorAll<HTMLButtonElement>('button[data-filter]');
+    const apply = (id: string, push = true) => {
+      if (![...buttons].some((b) => b.dataset.filter === id)) id = 'all';
+      buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filter === id)));
+      items.forEach((li) => (li.hidden = id !== 'all' && li.dataset.category !== id));
+      if (push) {
+        const url = new URL(location.href);
+        if (id === 'all') url.searchParams.delete('c');
+        else url.searchParams.set('c', id);
+        history.replaceState(null, '', url);
+      }
+    };
+    buttons.forEach((b) => b.addEventListener('click', () => apply(b.dataset.filter || 'all')));
+    const initial = new URL(location.href).searchParams.get('c');
+    if (initial) apply(initial, false);
+  }
+</script>
+
+<style>
+  .intro {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px 64px;
+    padding-top: 72px;
+    padding-bottom: 40px;
+  }
+  .intro p {
+    margin: 0;
+    max-width: 420px;
+    font-size: 17px;
+    line-height: 1.55;
+  }
+  .filters {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--line);
+    scrollbar-width: none;
+  }
+  .filters button {
+    flex: none;
+    min-height: 44px;
+    padding: 0 18px;
+    border-radius: 999px;
+    font: 500 14px var(--body);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    color: var(--ink);
+    border: 1px solid var(--line-strong);
+  }
+  .filters button:hover {
+    border-color: var(--ink);
+  }
+  .filters button[aria-pressed='true'] {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+  }
+  .count {
+    font-weight: 400;
+    opacity: 0.7;
+  }
+  .grid {
+    list-style: none;
+    margin: 0;
+    padding: 40px 0 96px;
+    columns: 3 280px;
+    column-gap: 28px;
+  }
+  .grid > li {
+    break-inside: avoid;
+    margin-bottom: 40px;
+  }
+  .grid > li[hidden] {
+    display: none;
+  }
+  .card {
+    display: block;
+    text-decoration: none;
+    color: var(--ink);
+  }
+  .card :global(img) {
+    width: 100%;
+    height: auto;
+    transition: opacity 0.2s;
+  }
+  .card:hover :global(img) {
+    opacity: 0.92;
+  }
+  .card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding-top: 14px;
+    font-size: 15px;
+  }
+  .card-title {
+    font-weight: 500;
+  }
+  .card-cat,
+  .card-meta {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .card-cat {
+    flex: none;
+  }
+  .card-meta {
+    padding-top: 4px;
+  }
+  @media (max-width: 720px) {
+    .intro {
+      padding-top: 36px;
+      padding-bottom: 24px;
+    }
+    .intro p {
+      font-size: 16px;
+    }
+    .filters {
+      margin-inline: calc(var(--gutter) * -1);
+      padding-inline: var(--gutter);
+      padding-bottom: 20px;
+    }
+    .grid {
+      padding-top: 28px;
+    }
+    .grid > li {
+      margin-bottom: 36px;
+    }
+  }
+</style>

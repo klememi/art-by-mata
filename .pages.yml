@@ -1,0 +1,243 @@
+# Pages CMS configuration — https://pagescms.org/docs/configuration/
+# Every save in Pages CMS commits to GitHub and the site rebuilds automatically.
+
+media:
+  - name: images
+    label: Images
+    input: src/assets/media
+    # Stored relative to the content files so Astro can optimise the images.
+    output: ../../assets/media
+    categories: [image]
+    rename: safe
+  - name: files
+    label: Files (CV, PDFs)
+    input: public/files
+    output: files
+    categories: [document]
+
+content:
+  - name: paintings
+    label: Paintings
+    type: collection
+    path: src/content/paintings
+    filename: "{primary}.md"
+    view:
+      fields: [image, title_sk, category, status, date]
+      primary: title_sk
+      sort: [date, title_sk]
+      default:
+        sort: date
+        order: desc
+    fields:
+      - name: title_sk
+        label: Názov (slovensky)
+        type: string
+        required: true
+      - name: title_en
+        label: Title (English)
+        type: string
+        description: Leave empty to use the Slovak title.
+      - name: image
+        label: Painting photo
+        type: image
+        required: true
+        options:
+          media: images
+          extensions: [jpg, jpeg, png, webp]
+        description: Upload the largest version you have — the website makes small copies for phones automatically.
+      - name: category
+        label: Category
+        type: reference
+        required: true
+        options:
+          collection: categories
+          value: "{path}"
+          label: "{name_sk}"
+      - name: date
+        label: Date added
+        type: date
+        required: true
+        description: Newest paintings are shown first.
+      - name: year
+        label: Year painted
+        type: number
+      - name: medium_sk
+        label: Technika (slovensky)
+        type: string
+        description: napr. Olej na plátne
+      - name: medium_en
+        label: Medium (English)
+        type: string
+        description: e.g. Oil on canvas
+      - name: width_cm
+        label: Width (cm)
+        type: number
+      - name: height_cm
+        label: Height (cm)
+        type: number
+      - name: status
+        label: Status
+        type: select
+        description: Leave empty to not show any status on the website.
+        options:
+          values:
+            - name: available
+              label: Available
+            - name: reserved
+              label: Reserved
+            - name: sold
+              label: Sold
+            - name: not_for_sale
+              label: Not for sale
+      - name: price
+        label: Price
+        type: string
+        description: e.g. € 450. Leave empty to show "price on request".
+      - name: description_sk
+        label: Popis (slovensky)
+        type: text
+      - name: description_en
+        label: Description (English)
+        type: text
+      - name: instagram_url
+        label: Instagram post link
+        type: string
+        description: Optional — link to this painting's Instagram post.
+      - name: published
+        label: Show on website
+        type: boolean
+        default: true
+
+  - name: categories
+    label: Categories
+    type: collection
+    path: src/content/categories
+    filename: "{primary}.md"
+    view:
+      fields: [name_sk, name_en, order]
+      primary: name_sk
+      default:
+        sort: order
+        order: asc
+    fields:
+      - name: name_sk
+        label: Názov (slovensky)
+        type: string
+        required: true
+      - name: name_en
+        label: Name (English)
+        type: string
+      - name: order
+        label: Order in the filter
+        type: number
+        description: Lower numbers come first.
+
+  - name: about
+    label: About page
+    type: file
+    path: src/content/pages/about.md
+    fields:
+      - name: portrait
+        label: Portrait or studio photo
+        type: image
+        options:
+          media: images
+      - name: portrait_caption_sk
+        label: Photo caption (Slovak)
+        type: string
+      - name: portrait_caption_en
+        label: Photo caption (English)
+        type: string
+      - name: lead_sk
+        label: Opening sentence (Slovak)
+        type: text
+      - name: lead_en
+        label: Opening sentence (English)
+        type: text
+      - name: bio_sk
+        label: Biography (Slovak)
+        type: text
+      - name: bio_en
+        label: Biography (English)
+        type: text
+        description: Leave an empty line between paragraphs.
+      - name: statement_sk
+        label: Artist statement (Slovak)
+        type: text
+      - name: statement_en
+        label: Artist statement (English)
+        type: text
+      - name: cv_file
+        label: CV (PDF)
+        type: file
+        options:
+          media: files
+      - name: exhibitions
+        label: Exhibitions
+        type: object
+        list: true
+        fields:
+          - { name: year, label: Year, type: string }
+          - { name: title_sk, label: Názov (slovensky), type: string }
+          - { name: title_en, label: Title (English), type: string }
+          - { name: venue, label: Venue, type: string }
+      - name: education
+        label: Education & awards
+        type: object
+        list: true
+        fields:
+          - { name: year, label: Year, type: string }
+          - { name: title_sk, label: Názov (slovensky), type: string }
+          - { name: title_en, label: Title (English), type: string }
+          - { name: institution, label: Institution, type: string }
+
+  - name: settings
+    label: Site settings
+    type: file
+    path: src/content/settings/site.json
+    format: json
+    fields:
+      - name: artist_name
+        label: Artist name (shown in the header)
+        type: string
+        required: true
+      - name: intro_sk
+        label: Home page intro (Slovak)
+        type: text
+      - name: intro_en
+        label: Home page intro (English)
+        type: text
+      - name: seo_description_sk
+        label: Search engine description (Slovak)
+        type: text
+      - name: seo_description_en
+        label: Search engine description (English)
+        type: text
+      - name: email
+        label: Contact email
+        type: string
+      - name: location_sk
+        label: Studio location (Slovak)
+        type: string
+      - name: location_en
+        label: Studio location (English)
+        type: string
+        description: e.g. Bratislava, Slovakia · visits by appointment
+      - name: reply_time_sk
+        label: Reply time (Slovak)
+        type: string
+        description: napr. 2–3 dní
+      - name: reply_time_en
+        label: Reply time (English)
+        type: string
+        description: e.g. 2–3 days
+      - name: instagram_handle
+        label: Instagram handle (without @)
+        type: string
+      - name: instagram_url
+        label: Instagram profile link
+        type: string
+      - name: web3forms_access_key
+        label: Contact form key (Web3Forms)
+        type: string
+        description: Free key from web3forms.com — messages from the contact form are emailed to you.

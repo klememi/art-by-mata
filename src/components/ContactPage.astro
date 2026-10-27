@@ -1,0 +1,384 @@
+---
+import Base from '../layouts/Base.astro';
+import PaintingImage from './PaintingImage.astro';
+import { href, pick, ui, type Lang } from '../i18n';
+import { getPaintings, getSettings } from '../lib/data';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = ui[lang];
+const other: Lang = lang === 'en' ? 'sk' : 'en';
+const settings = await getSettings();
+const paintings = await getPaintings();
+// Instagram strip: paintings linked to a post first, then the newest ones.
+const feed = [...paintings.filter((p) => p.data.instagram_url), ...paintings.filter((p) => !p.data.instagram_url)].slice(0, 6);
+const location = pick(settings, 'location', lang);
+const replyTime = pick(settings, 'reply_time', lang);
+const key = settings.web3forms_access_key;
+---
+
+<Base lang={lang} title={t.contact} current="contact" alternate={href(other, 'contact')}>
+  <div class="wrap contact">
+    <section class="main">
+      <div class="head">
+        <h1 class="page-title">{t.getInTouch}</h1>
+        <p class="muted">
+          {t.contactIntro}
+          {replyTime && ` ${t.replyWithin} ${replyTime}.`}
+        </p>
+      </div>
+
+      <form
+        method="POST"
+        action="https://api.web3forms.com/submit"
+        data-contact-form
+        data-not-connected={key ? undefined : 'true'}
+        data-error={t.formError}
+        data-not-connected-msg={t.formNotConnected}
+        data-sending={t.sending}
+      >
+        <input type="hidden" name="access_key" value={key} />
+        <input type="hidden" name="subject" value={`${settings.artist_name} — website message`} />
+        <input type="hidden" name="from_name" value={`${settings.artist_name} website`} />
+        <input type="checkbox" name="botcheck" class="sr-only" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
+        <div class="row">
+          <div class="field">
+            <label for="cf-name">{t.name}</label>
+            <input id="cf-name" name="name" type="text" autocomplete="name" required />
+          </div>
+          <div class="field">
+            <label for="cf-email">{t.email}</label>
+            <input id="cf-email" name="email" type="email" autocomplete="email" required />
+          </div>
+        </div>
+        <div class="field">
+          <label for="cf-topic">{t.topic}</label>
+          <select id="cf-topic" name="topic">
+            {t.topics.map((topic) => <option>{topic}</option>)}
+          </select>
+        </div>
+        <div class="field">
+          <label for="cf-msg">{t.message}</label>
+          <textarea id="cf-msg" name="message" rows="6" required></textarea>
+        </div>
+        <p class="form-error" role="alert" hidden data-form-error></p>
+        <div class="submit">
+          <button class="btn btn-primary" type="submit" data-submit>{t.send}</button>
+          <span class="muted small">{t.privacy}</span>
+        </div>
+      </form>
+
+      <div class="thanks" role="status" hidden data-thanks tabindex="-1">
+        <span class="thanks-title">{t.thanksTitle}</span>
+        <span class="muted">{t.thanksBody}</span>
+        <button type="button" class="link-btn" data-reset>{t.sendAnother}</button>
+      </div>
+    </section>
+
+    <aside class="side">
+      <dl>
+        {
+          settings.email && (
+            <div>
+              <dt>{t.email}</dt>
+              <dd><a href={`mailto:${settings.email}`}>{settings.email}</a></dd>
+            </div>
+          )
+        }
+        {
+          location && (
+            <div>
+              <dt>{t.studio}</dt>
+              <dd>{location}</dd>
+            </div>
+          )
+        }
+      </dl>
+
+      {
+        settings.instagram_url && (
+          <section class="ig">
+            <div class="ig-head">
+              <h2>{t.onInstagram}</h2>
+              {settings.instagram_handle && <span class="muted small">@{settings.instagram_handle}</span>}
+            </div>
+            <ul>
+              {feed.map((p) => (
+                <li>
+                  <a href={p.data.instagram_url || settings.instagram_url} rel="noopener" target="_blank" aria-label={`${t.instagram}: ${pick(p.data, 'title', lang)}`}>
+                    <PaintingImage src={p.data.image} alt="" sizes="(max-width: 720px) 30vw, 130px" widths={[160, 240, 320]} class="art" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <a class="btn btn-outline" href={settings.instagram_url} rel="me noopener" target="_blank">
+              {t.follow}
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7" /><path d="M8 7h9v9" /></svg>
+            </a>
+          </section>
+        )
+      }
+    </aside>
+  </div>
+</Base>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-contact-form]');
+  const thanks = document.querySelector<HTMLElement>('[data-thanks]');
+  const errorBox = document.querySelector<HTMLElement>('[data-form-error]');
+  const submit = document.querySelector<HTMLButtonElement>('[data-submit]');
+  const reset = document.querySelector<HTMLButtonElement>('[data-reset]');
+
+  if (form && thanks && errorBox && submit) {
+    // Prefill when coming from a painting's "Enquire" button.
+    const painting = new URL(location.href).searchParams.get('painting');
+    if (painting) {
+      const msg = form.querySelector<HTMLTextAreaElement>('textarea[name="message"]');
+      const topic = form.querySelector<HTMLSelectElement>('select[name="topic"]');
+      if (msg && !msg.value) msg.value = `${painting}\n\n`;
+      if (topic) topic.selectedIndex = 0;
+    }
+
+    const label = submit.textContent;
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBox.hidden = true;
+      if (form.dataset.notConnected) {
+        errorBox.textContent = form.dataset.notConnectedMsg || '';
+        errorBox.hidden = false;
+        return;
+      }
+      submit.disabled = true;
+      submit.textContent = form.dataset.sending || label;
+      try {
+        const res = await fetch(form.action, {
+          method: 'POST',
+          headers: { Accept: 'application/json' },
+          body: new FormData(form),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || json.success === false) throw new Error(json.message || res.statusText);
+        form.reset();
+        form.hidden = true;
+        thanks.hidden = false;
+        thanks.focus();
+      } catch {
+        errorBox.textContent = form.dataset.error || '';
+        errorBox.hidden = false;
+      } finally {
+        submit.disabled = false;
+        submit.textContent = label;
+      }
+    });
+
+    reset?.addEventListener('click', () => {
+      thanks.hidden = true;
+      form.hidden = false;
+      form.querySelector('input')?.focus();
+    });
+  }
+</script>
+
+<style>
+  .contact {
+    padding-top: 56px;
+    padding-bottom: 96px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 64px 96px;
+  }
+  .main {
+    flex: 999 1 520px;
+    min-width: 0;
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+  .head {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .page-title {
+    font-size: clamp(40px, 6vw, 72px);
+  }
+  .head p {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.6;
+    max-width: 540px;
+  }
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  form[hidden] {
+    display: none;
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .row .field {
+    flex: 1 1 240px;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  label {
+    font-size: 14px;
+    font-weight: 500;
+  }
+  input:not([type='checkbox']),
+  select,
+  textarea {
+    min-height: 48px;
+    padding: 0 14px;
+    border: 1px solid var(--field);
+    border-radius: 2px;
+    font: 16px var(--body);
+    color: var(--ink);
+    background: #fff;
+    width: 100%;
+  }
+  textarea {
+    padding: 12px 14px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--ink);
+    outline: none;
+    box-shadow: 0 0 0 1px var(--ink);
+  }
+  .submit {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px 24px;
+  }
+  .submit .btn {
+    padding: 0 28px;
+  }
+  .small {
+    font-size: 13px;
+  }
+  .form-error {
+    margin: 0;
+    padding: 12px 16px;
+    background: #fbeeea;
+    color: #8a2c14;
+    font-size: 15px;
+  }
+  .thanks {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 32px;
+    background: var(--mat);
+  }
+  .thanks[hidden] {
+    display: none;
+  }
+  .thanks-title {
+    font-family: var(--display);
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+  }
+  .link-btn {
+    align-self: flex-start;
+    min-height: 44px;
+    padding: 0;
+    background: none;
+    border: 0;
+    font: 500 15px var(--body);
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    cursor: pointer;
+  }
+  .side {
+    flex: 1 1 320px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+  dl {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    font-size: 16px;
+  }
+  dl:empty {
+    display: none;
+  }
+  dl > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  dt {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  dd {
+    margin: 0;
+  }
+  .ig {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    border-top: 1px solid var(--line);
+    padding-top: 28px;
+  }
+  .ig-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .ig h2 {
+    font-size: 20px;
+    letter-spacing: -0.01em;
+  }
+  .ig ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .ig ul a {
+    display: block;
+  }
+  .ig ul :global(img) {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+  }
+  .btn-outline {
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    background: #fff;
+  }
+  @media (max-width: 720px) {
+    .contact {
+      padding-top: 32px;
+    }
+  }
+</style>

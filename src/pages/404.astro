@@ -1,0 +1,38 @@
+---
+import Base from '../layouts/Base.astro';
+import { href, ui } from '../i18n';
+const t = ui.sk;
+const s = ui.en;
+---
+
+<Base lang="sk" title={t.notFound} current="none" alternate={href('en', 'home')}>
+  <section class="wrap nf">
+    <h1 class="page-title">404</h1>
+    <p>{t.notFoundBody}</p>
+    <p lang="en" class="muted">{s.notFoundBody}</p>
+    <div class="links">
+      <a class="btn btn-primary" href={href('sk', 'home')}>{t.backHome}</a>
+      <a class="btn btn-secondary" href={href('en', 'home')} lang="en">{s.backHome}</a>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .nf {
+    padding-top: 72px;
+    padding-bottom: 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .nf p {
+    margin: 0;
+    font-size: 17px;
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 16px;
+  }
+</style>
