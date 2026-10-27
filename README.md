@@ -53,7 +53,7 @@ Until a key is set, the form tells visitors to use email instead. Also fill in *
 
 ## Working locally (optional)
 
-Requires Node.js 22+.
+Requires Node.js 24 (or 22.23.4+).
 
 ```bash
 npm install
